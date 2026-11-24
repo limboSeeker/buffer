@@ -19,16 +19,28 @@ Clipboard history for macOS. Lives in the menu bar, opens with ⌥V.
 | ⌘⌫ | delete |
 | esc | close |
 
-## Build
+## Install
 
-Requires macOS 14+ and Xcode command line tools.
+macOS 14 or newer, Apple Silicon or Intel. Paste into Terminal:
 
 ```bash
-./scripts/build-app.sh --install   # builds Buffer.app, copies to /Applications, launches it
+curl -fsSL https://raw.githubusercontent.com/limboSeeker/buffer/main/scripts/install.sh | bash
+```
+
+Or by hand: download `Buffer.zip` from [Releases](https://github.com/limboSeeker/buffer/releases/latest), unzip, move `Buffer.app` to Applications. The app isn't notarized, so the first time right-click it → Open.
+
+On first launch macOS asks for Accessibility access. Allow it: Buffer needs it to paste into the active field. Copying works without it.
+
+## Build from source
+
+Needs Xcode command line tools.
+
+```bash
+./scripts/build-app.sh --install   # build, copy to /Applications, launch
 swift test
 ```
 
-Auto-paste needs Accessibility access: System Settings → Privacy & Security → Accessibility → Buffer. The app is ad-hoc signed, so macOS forgets this permission after every rebuild. Remove Buffer from the list and add it again.
+The app is ad-hoc signed, so after every rebuild or reinstall macOS forgets the Accessibility permission. Remove Buffer from System Settings → Privacy & Security → Accessibility and add it again.
 
 ## Files
 
