@@ -67,7 +67,7 @@ struct PickerView: View {
         VStack(spacing: 0) {
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
-                TextField("Поиск в истории", text: $model.query)
+                TextField("Search history", text: $model.query)
                     .textFieldStyle(.plain)
                     .font(.system(size: 15))
                     .focused($searchFocused)
@@ -80,7 +80,7 @@ struct PickerView: View {
             if results.isEmpty {
                 VStack(spacing: 6) {
                     Image(systemName: "doc.on.clipboard").font(.system(size: 28)).foregroundStyle(.tertiary)
-                    Text(model.query.isEmpty ? "История пуста — скопируйте что-нибудь" : "Ничего не найдено")
+                    Text(model.query.isEmpty ? "History is empty. Copy something." : "Nothing found")
                         .foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -94,8 +94,8 @@ struct PickerView: View {
                                     .id(item.id)
                                     .onTapGesture { model.choose(index: index) }
                                     .contextMenu {
-                                        Button(item.pinned ? "Открепить" : "Закрепить") { store.togglePin(item.id) }
-                                        Button("Удалить", role: .destructive) { store.remove(item.id) }
+                                        Button(item.pinned ? "Unpin" : "Pin") { store.togglePin(item.id) }
+                                        Button("Delete", role: .destructive) { store.remove(item.id) }
                                     }
                             }
                         }
@@ -110,7 +110,7 @@ struct PickerView: View {
 
             Divider()
 
-            Text("↩ выбрать   ↑↓ навигация   ⌘1–9 быстро   ⌘P закрепить   ⌘⌫ удалить   esc")
+            Text("↩ choose   ↑↓ move   ⌘1–9 quick pick   ⌘P pin   ⌘⌫ delete   esc")
                 .font(.system(size: 10.5))
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
@@ -134,7 +134,7 @@ struct ClipRow: View {
 
     private static let relative: RelativeDateTimeFormatter = {
         let f = RelativeDateTimeFormatter()
-        f.locale = Locale(identifier: "ru_RU")
+        f.locale = Locale(identifier: "en_US")
         f.unitsStyle = .short
         return f
     }()
@@ -185,7 +185,7 @@ struct ClipRow: View {
     private var subtitle: String {
         let time = Self.relative.localizedString(for: item.date, relativeTo: Date())
         if item.kind == .text, let text = item.text {
-            return "\(time) · \(text.count) симв."
+            return String(format: "%@ · %d chars", time, text.count)
         }
         return time
     }

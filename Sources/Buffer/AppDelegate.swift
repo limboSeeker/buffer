@@ -54,7 +54,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
 
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        statusItem.button?.image = NSImage(systemSymbolName: "doc.on.clipboard", accessibilityDescription: "Буфер")
+        statusItem.button?.image = NSImage(systemSymbolName: "doc.on.clipboard", accessibilityDescription: "Clipboard history")
         let menu = NSMenu()
         menu.delegate = self
         statusItem.menu = menu
@@ -96,7 +96,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func menuNeedsUpdate(_ menu: NSMenu) {
         menu.removeAllItems()
 
-        let show = NSMenuItem(title: "Открыть историю", action: #selector(showPicker), keyEquivalent: "v")
+        let show = NSMenuItem(title: "Open History", action: #selector(showPicker), keyEquivalent: "v")
         show.keyEquivalentModifierMask = [.option]
         show.target = self
         menu.addItem(show)
@@ -104,7 +104,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         let recent = store.search("").prefix(Self.menuItemsCount)
         if recent.isEmpty {
-            let empty = NSMenuItem(title: "История пуста", action: nil, keyEquivalent: "")
+            let empty = NSMenuItem(title: "History is empty", action: nil, keyEquivalent: "")
             empty.isEnabled = false
             menu.addItem(empty)
         }
@@ -124,29 +124,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         menu.addItem(.separator())
 
-        let paste = NSMenuItem(title: "Вставлять сразу после выбора", action: #selector(toggleAutoPaste), keyEquivalent: "")
+        let paste = NSMenuItem(title: "Paste After Choosing", action: #selector(toggleAutoPaste), keyEquivalent: "")
         paste.target = self
         paste.state = autoPaste ? .on : .off
         menu.addItem(paste)
 
         if autoPaste && !Paster.isTrusted(prompt: false) {
-            let grant = NSMenuItem(title: "Разрешить вставку…", action: #selector(showOnboarding), keyEquivalent: "")
+            let grant = NSMenuItem(title: "Allow Pasting…", action: #selector(showOnboarding), keyEquivalent: "")
             grant.target = self
             grant.image = NSImage(systemSymbolName: "exclamationmark.triangle", accessibilityDescription: nil)
             menu.addItem(grant)
         }
 
-        let login = NSMenuItem(title: "Запускать при входе", action: #selector(toggleLaunchAtLogin), keyEquivalent: "")
+        let login = NSMenuItem(title: "Launch at Login", action: #selector(toggleLaunchAtLogin), keyEquivalent: "")
         login.target = self
         login.state = SMAppService.mainApp.status == .enabled ? .on : .off
         menu.addItem(login)
 
-        let clear = NSMenuItem(title: "Очистить историю…", action: #selector(clearHistory), keyEquivalent: "")
+        let clear = NSMenuItem(title: "Clear History…", action: #selector(clearHistory), keyEquivalent: "")
         clear.target = self
         menu.addItem(clear)
 
         menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: "Выйти", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+        menu.addItem(NSMenuItem(title: "Quit Buffer", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
     }
 
     @objc private func showPicker() {
@@ -176,17 +176,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 try SMAppService.mainApp.register()
             }
         } catch {
-            showAlert(title: "Не удалось изменить автозапуск", text: error.localizedDescription)
+            showAlert(title: "Couldn't change launch at login", text: error.localizedDescription)
         }
     }
 
     @objc private func clearHistory() {
         NSApp.activate(ignoringOtherApps: true)
         let alert = NSAlert()
-        alert.messageText = "Очистить историю?"
-        alert.informativeText = "Закреплённые элементы останутся."
-        alert.addButton(withTitle: "Очистить")
-        alert.addButton(withTitle: "Отмена")
+        alert.messageText = "Clear history?"
+        alert.informativeText = "Pinned items will stay."
+        alert.addButton(withTitle: "Clear")
+        alert.addButton(withTitle: "Cancel")
         if alert.runModal() == .alertFirstButtonReturn {
             store.clearUnpinned()
         }

@@ -18,30 +18,30 @@ struct OnboardingView: View {
                     .font(.system(size: 30))
                     .foregroundStyle(.tint)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Buffer запущен").font(.title2.bold())
-                    Text("⌥V — открыть историю буфера обмена").foregroundStyle(.secondary)
+                    Text("Buffer is running").font(.title2.bold())
+                    Text("Press ⌥V to open your clipboard history").foregroundStyle(.secondary)
                 }
             }
 
-            Text("Чтобы выбранная запись сразу вставлялась туда, где стоит курсор, разрешите Buffer «Универсальный доступ». Без него Buffer будет только копировать.")
+            Text("To paste the item you pick right where your cursor is, allow Buffer in Accessibility. Without it, Buffer only copies.")
                 .fixedSize(horizontal: false, vertical: true)
 
             HStack(spacing: 8) {
                 Image(systemName: model.trusted ? "checkmark.circle.fill" : "circle.dashed")
                     .foregroundStyle(model.trusted ? Color.green : Color.secondary)
-                Text(model.trusted ? "Доступ выдан, всё готово" : "Включите Buffer в списке «Универсальный доступ»")
+                Text(model.trusted ? "Access granted. You're all set." : "Turn on Buffer in the Accessibility list")
             }
             .font(.callout)
 
             HStack {
                 if !model.trusted {
-                    Button("Только копировать", action: copyOnly)
+                    Button("Copy only", action: copyOnly)
                 }
                 Spacer()
                 if model.trusted {
-                    Button("Готово", action: done).keyboardShortcut(.defaultAction)
+                    Button("Done", action: done).keyboardShortcut(.defaultAction)
                 } else {
-                    Button("Открыть настройки", action: openSettings).keyboardShortcut(.defaultAction)
+                    Button("Open Settings", action: openSettings).keyboardShortcut(.defaultAction)
                 }
             }
         }
