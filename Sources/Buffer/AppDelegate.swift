@@ -9,6 +9,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var picker: PickerController!
     private var hotKey: HotKey?
     private var statusItem: NSStatusItem!
+    private let onboarding = OnboardingController()
 
     private static let autoPasteKey = "autoPaste"
     private static let menuItemsCount = 15
@@ -20,9 +21,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         UserDefaults.standard.register(defaults: [Self.autoPasteKey: true])
-        if autoPaste {
-            // Ask for Accessibility once at launch so ⌘V can be sent after choosing an item.
-            Log.write("launch: accessibility trusted=\(Paster.isTrusted(prompt: true))")
+        onboarding.onCopyOnly = { [weak self] in self?.autoPaste = false }
+        let trusted = Paster.isTrusted(prompt: false)
+        Log.write("launch: accessibility trusted=\(trusted) autoPaste=\(autoPaste)")
+        if autoPaste && !trusted {
+            onboarding.show()
         }
 
         watcher = PasteboardWatcher(store: store)
@@ -43,9 +46,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 self?.picker.snapshot(to: URL(fileURLWithPath: path))
             }
         }
+        if let path = ProcessInfo.processInfo.environment["BUFFER_SNAPSHOT_ONBOARDING"] {
+            onboarding.show()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
+                self?.onboarding.snapshot(to: URL(fileURLWithPath: path))
+            }
+        }
 
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        statusItem.button?.image = NSImage(systemSymbolName: "doc.on.clipboard", accessibilityDescription: "Буфер")
+        statusItem.button?.image = NSImage(systemSymbolName: "doc.on.clipboard", accessibilityDescription: "Clipboard history")
         let menu = NSMenu()
         menu.delegate = self
         statusItem.menu = menu
@@ -75,8 +84,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // The picker panel never activates Buffer, so ⌘V lands in the app (and text field) that had focus.
         guard autoPaste else { return }
         guard trusted else {
-            // Don't fail silently: show the system "allow Accessibility" dialog.
-            _ = Paster.isTrusted(prompt: true)
+            // Don't fail silently: explain what is missing and how to grant it.
+            onboarding.show()
             return
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) { Paster.paste() }
@@ -87,7 +96,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func menuNeedsUpdate(_ menu: NSMenu) {
         menu.removeAllItems()
 
-        let show = NSMenuItem(title: "Открыть историю", action: #selector(showPicker), keyEquivalent: "v")
+        let show = NSMenuItem(title: "Open History", action: #selector(showPicker), keyEquivalent: "v")
         show.keyEquivalentModifierMask = [.option]
         show.target = self
         menu.addItem(show)
@@ -95,7 +104,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         let recent = store.search("").prefix(Self.menuItemsCount)
         if recent.isEmpty {
-            let empty = NSMenuItem(title: "История пуста", action: nil, keyEquivalent: "")
+            let empty = NSMenuItem(title: "History is empty", action: nil, keyEquivalent: "")
             empty.isEnabled = false
             menu.addItem(empty)
         }
@@ -115,22 +124,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         menu.addItem(.separator())
 
-        let paste = NSMenuItem(title: "Вставлять сразу после выбора", action: #selector(toggleAutoPaste), keyEquivalent: "")
+        let paste = NSMenuItem(title: "Paste After Choosing", action: #selector(toggleAutoPaste), keyEquivalent: "")
         paste.target = self
         paste.state = autoPaste ? .on : .off
         menu.addItem(paste)
 
-        let login = NSMenuItem(title: "Запускать при входе", action: #selector(toggleLaunchAtLogin), keyEquivalent: "")
+        if autoPaste && !Paster.isTrusted(prompt: false) {
+            let grant = NSMenuItem(title: "Allow Pasting…", action: #selector(showOnboarding), keyEquivalent: "")
+            grant.target = self
+            grant.image = NSImage(systemSymbolName: "exclamationmark.triangle", accessibilityDescription: nil)
+            menu.addItem(grant)
+        }
+
+        let login = NSMenuItem(title: "Launch at Login", action: #selector(toggleLaunchAtLogin), keyEquivalent: "")
         login.target = self
         login.state = SMAppService.mainApp.status == .enabled ? .on : .off
         menu.addItem(login)
 
-        let clear = NSMenuItem(title: "Очистить историю…", action: #selector(clearHistory), keyEquivalent: "")
+        let clear = NSMenuItem(title: "Clear History…", action: #selector(clearHistory), keyEquivalent: "")
         clear.target = self
         menu.addItem(clear)
 
         menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: "Выйти", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+        menu.addItem(NSMenuItem(title: "Quit Buffer", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
     }
 
     @objc private func showPicker() {
@@ -145,7 +161,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc private func toggleAutoPaste() {
         autoPaste.toggle()
-        if autoPaste { _ = Paster.isTrusted(prompt: true) }
+        if autoPaste && !Paster.isTrusted(prompt: false) { onboarding.show() }
+    }
+
+    @objc private func showOnboarding() {
+        onboarding.show()
     }
 
     @objc private func toggleLaunchAtLogin() {
@@ -156,17 +176,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 try SMAppService.mainApp.register()
             }
         } catch {
-            showAlert(title: "Не удалось изменить автозапуск", text: error.localizedDescription)
+            showAlert(title: "Couldn't change launch at login", text: error.localizedDescription)
         }
     }
 
     @objc private func clearHistory() {
         NSApp.activate(ignoringOtherApps: true)
         let alert = NSAlert()
-        alert.messageText = "Очистить историю?"
-        alert.informativeText = "Закреплённые элементы останутся."
-        alert.addButton(withTitle: "Очистить")
-        alert.addButton(withTitle: "Отмена")
+        alert.messageText = "Clear history?"
+        alert.informativeText = "Pinned items will stay."
+        alert.addButton(withTitle: "Clear")
+        alert.addButton(withTitle: "Cancel")
         if alert.runModal() == .alertFirstButtonReturn {
             store.clearUnpinned()
         }

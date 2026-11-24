@@ -29,7 +29,7 @@ public struct ClipItem: Codable, Identifiable, Equatable {
     public func preview(maxLength: Int = 200) -> String {
         switch kind {
         case .image:
-            return "Изображение"
+            return "Image"
         case .text:
             let collapsed = (text ?? "")
                 .split(whereSeparator: \.isNewline)

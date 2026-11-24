@@ -15,6 +15,8 @@ rm -rf /Applications/Buffer.app
 mv "$TMP/Buffer.app" /Applications/
 # The app is not notarized; drop the quarantine flag so Gatekeeper lets it start.
 xattr -dr com.apple.quarantine /Applications/Buffer.app 2>/dev/null || true
+# A permission granted to a previous build no longer matches this one; clear it so Buffer asks cleanly.
+tccutil reset Accessibility local.buffer.clipboard >/dev/null 2>&1 || true
 
 open /Applications/Buffer.app
 echo "Done. Buffer is in the menu bar, press ⌥V to open it."
