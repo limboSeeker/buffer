@@ -9,6 +9,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var picker: PickerController!
     private var hotKey: HotKey?
     private var statusItem: NSStatusItem!
+    private let onboarding = OnboardingController()
 
     private static let autoPasteKey = "autoPaste"
     private static let menuItemsCount = 15
@@ -20,9 +21,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         UserDefaults.standard.register(defaults: [Self.autoPasteKey: true])
-        if autoPaste {
-            // Ask for Accessibility once at launch so ⌘V can be sent after choosing an item.
-            Log.write("launch: accessibility trusted=\(Paster.isTrusted(prompt: true))")
+        onboarding.onCopyOnly = { [weak self] in self?.autoPaste = false }
+        let trusted = Paster.isTrusted(prompt: false)
+        Log.write("launch: accessibility trusted=\(trusted) autoPaste=\(autoPaste)")
+        if autoPaste && !trusted {
+            onboarding.show()
         }
 
         watcher = PasteboardWatcher(store: store)
@@ -41,6 +44,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             picker.show()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
                 self?.picker.snapshot(to: URL(fileURLWithPath: path))
+            }
+        }
+        if let path = ProcessInfo.processInfo.environment["BUFFER_SNAPSHOT_ONBOARDING"] {
+            onboarding.show()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
+                self?.onboarding.snapshot(to: URL(fileURLWithPath: path))
             }
         }
 
@@ -75,8 +84,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // The picker panel never activates Buffer, so ⌘V lands in the app (and text field) that had focus.
         guard autoPaste else { return }
         guard trusted else {
-            // Don't fail silently: show the system "allow Accessibility" dialog.
-            _ = Paster.isTrusted(prompt: true)
+            // Don't fail silently: explain what is missing and how to grant it.
+            onboarding.show()
             return
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) { Paster.paste() }
@@ -120,6 +129,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         paste.state = autoPaste ? .on : .off
         menu.addItem(paste)
 
+        if autoPaste && !Paster.isTrusted(prompt: false) {
+            let grant = NSMenuItem(title: "Разрешить вставку…", action: #selector(showOnboarding), keyEquivalent: "")
+            grant.target = self
+            grant.image = NSImage(systemSymbolName: "exclamationmark.triangle", accessibilityDescription: nil)
+            menu.addItem(grant)
+        }
+
         let login = NSMenuItem(title: "Запускать при входе", action: #selector(toggleLaunchAtLogin), keyEquivalent: "")
         login.target = self
         login.state = SMAppService.mainApp.status == .enabled ? .on : .off
@@ -145,7 +161,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc private func toggleAutoPaste() {
         autoPaste.toggle()
-        if autoPaste { _ = Paster.isTrusted(prompt: true) }
+        if autoPaste && !Paster.isTrusted(prompt: false) { onboarding.show() }
+    }
+
+    @objc private func showOnboarding() {
+        onboarding.show()
     }
 
     @objc private func toggleLaunchAtLogin() {
