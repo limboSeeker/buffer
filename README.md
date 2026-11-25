@@ -46,3 +46,7 @@ The app is ad-hoc signed, so after every rebuild or reinstall macOS forgets the 
 
 - History: `~/Library/Application Support/Buffer/`
 - Log: `~/Library/Logs/Buffer.log` (no clipboard contents)
+
+## License
+
+MIT, see [LICENSE](LICENSE).
