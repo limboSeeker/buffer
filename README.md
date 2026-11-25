@@ -1,6 +1,13 @@
 # Buffer
 
-Clipboard history for macOS. Lives in the menu bar, opens with ⌥V.
+Lightweight clipboard history for macOS. Lives in the menu bar, opens with ⌥V.
+
+[![License: MIT](https://img.shields.io/github/license/limboSeeker/buffer)](LICENSE)
+[![Latest release](https://img.shields.io/github/v/release/limboSeeker/buffer)](https://github.com/limboSeeker/buffer/releases/latest)
+![macOS 14+](https://img.shields.io/badge/macOS-14%2B-blue?logo=apple)
+![Swift 5.10](https://img.shields.io/badge/Swift-5.10-F05138?logo=swift&logoColor=white)
+
+<!-- ![⌥V opens the history at the cursor, search, pick, and the item is pasted](docs/images/demo.gif) -->
 
 ## Features
 
@@ -18,6 +25,12 @@ Clipboard history for macOS. Lives in the menu bar, opens with ⌥V.
 | ⌘P | pin / unpin |
 | ⌘⌫ | delete |
 | esc | close |
+
+<!-- ![History window with text, an image and a pinned item](docs/images/picker.png) -->
+
+The menu bar icon lists recent items and holds the settings.
+
+<!-- ![Menu bar menu](docs/images/menubar.png) -->
 
 ## Install
 
